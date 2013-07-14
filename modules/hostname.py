@@ -7,14 +7,29 @@ and getdomainname()/setdomainname() from Salt.
 :depends:   ctypes
 :platform:  POSIX?
 '''
-from ctypes import CDLL, c_char_p, c_size_t, byref, create_string_buffer
+from ctypes import CDLL as __CDLL__, c_char_p, c_size_t, create_string_buffer as __create_string_buffer__
+
+__opts__ = {}
+
+def __guess_libc_file__():
+    '''
+    Guess filename of libc for this OS...
+    '''
+    if __opts__.has_key('libc_filename'):
+        return __opts__['libc_filename']
+    elif __grains__['kernel'] == 'Linux':
+      # Works on Debian 7 and Fedora 19:
+      return 'libc.so.6'
+    else:
+      # Works on FreeBSD 9.1:
+      return 'libc.so'
 
 def getdomainname(max_len=255):
     '''
     Call libc's getdomainname() to get the current domainname.
     '''
-    libc = CDLL('libc.so.6',use_errno=True)
-    domainname_p = create_string_buffer(max_len)
+    libc = __CDLL__(__guess_libc_file__(),use_errno=True)
+    domainname_p = __create_string_buffer__(max_len)
     max_len = c_size_t(max_len)
     c_ret = libc.getdomainname(domainname_p, max_len)
     if c_ret == 0:
@@ -26,8 +41,8 @@ def gethostname(max_len=255):
     '''
     Call libc's gethostname() to get the current hostname.
     '''
-    libc = CDLL('libc.so.6',use_errno=True)
-    hostname_p = create_string_buffer(max_len)
+    libc = __CDLL__(__guess_libc_file__(),use_errno=True)
+    hostname_p = __create_string_buffer__(max_len)
     max_len = c_size_t(max_len)
     c_ret = libc.gethostname(hostname_p, max_len)
     if c_ret == 0:
@@ -39,10 +54,10 @@ def setdomainname(domainname):
     '''
     Call libc's setdomainname() to *set* the system's domainname.
     '''
-    libc = CDLL('libc.so.6',use_errno=True)
-    if (domainname isinstance unicode):
+    libc = __CDLL__(__guess_libc_file__(),use_errno=True)
+    if isinstance(domainname,unicode):
         domainname_p = c_char_p(domainname.encode('ascii','ignore'))
-    elif (domainname isinstance str):
+    elif isinstance(domainname,str):
         domainname_p = c_char_p(domainname)
     else:
         raise (ValueError, '<%s> is neither str or unicode' % domainname)
@@ -57,10 +72,10 @@ def sethostname(hostname):
     '''
     Call libc's sethostname() to *set* the system's hostname.
     '''
-    libc = CDLL('libc.so.6',use_errno=True)
-    if (hostname isinstance unicode):
+    libc = __CDLL__(__guess_libc_file__(),use_errno=True)
+    if isinstance(hostname,unicode):
         hostname_p = c_char_p(hostname.encode('ascii','ignore'))
-    elif (hostname isinstance str):
+    elif isinstance(hostname,str):
         hostname_p = c_char_p(hostname)
     else:
         raise (ValueError, '<%s> is neither str or unicode' % hostname)
